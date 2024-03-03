@@ -7,6 +7,7 @@ from typing import Any, List, Optional
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
+from save_model import save_llm_local
 
 
 class MistralService(LLM):
@@ -14,7 +15,7 @@ class MistralService(LLM):
     tokenizer: AutoTokenizer = None
     model: AutoModelForCausalLM = None
 
-    def __int__(self, model_path: str, model_id="", bnb_config=""):
+    def __int__(self, model_path: str):
         super().__init__()
         # 从本地初始化模型
         if os.path.exists(model_path):
@@ -24,16 +25,14 @@ class MistralService(LLM):
             print("完成本地模型的加载")
         else:
             print("正在从远程加载模型...")
-            if bnb_config:
-                # 加载并配置模型
-                self.model = AutoModelForCausalLM.from_pretrained(
-                    model_id,
-                    device_map="auto",  # 自动选择运行设备
-                    quantization_config=bnb_config,
-                )
-            else:
-                self.model = AutoModelForCausalLM.from_pretrained(model_id)
-            self.tokenizer = AutoTokenizer.from_pretrained(model_id)
+            # 配置BitsAndBytes的设定，用于模型的量化以提高效率。
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,  # 启用位元量化
+                bnb_4bit_compute_dtype=torch.float16,  # 计算时使用的数据类型
+                bnb_4bit_quant_type="nf4",  # 量化类型
+                bnb_4bit_use_double_quant=True,  # 使用双重量化
+            )
+            self.model, self.tokenizer = save_llm_local(model_path, quantization_config, "mistral")
             print("完成远程模型的加载")
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None,

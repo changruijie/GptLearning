@@ -1,7 +1,8 @@
 import os
 from langchain.text_splitter import CharacterTextSplitter,MarkdownTextSplitter
-from langchain.document_loaders import UnstructuredFileLoader,UnstructuredMarkdownLoader
-from langchain.document_loaders import UnstructuredPDFLoader
+from langchain_community.document_loaders import UnstructuredMarkdownLoader
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.document_loaders import UnstructuredFileLoader
 from rapidocr_onnxruntime import RapidOCR
 
 
@@ -52,7 +53,7 @@ def load_md_file(md_file, chunk_size=500, chunk_overlap=10):
 
 # 加载pdf文件
 def load_pdf_file(pdf_file, chunk_size=500, chunk_overlap=10):
-    loader = UnstructuredPDFLoader(pdf_file)
+    loader = PyPDFLoader(pdf_file)
     docs = loader.load()
     text_splitter = CharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     split_docs = text_splitter.split_documents(docs)

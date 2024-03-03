@@ -1,5 +1,5 @@
 import torch
-from transformers import AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, BitsAndBytesConfig, AutoTokenizer
 import os
 
 
@@ -14,7 +14,10 @@ def save_llm_local(model_id: str, bnb_config, file_path: str):
         )
     else:
         model = AutoModelForCausalLM.from_pretrained(model_id)
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
     write_to_folder(file_path, model)
+    write_to_folder(file_path, tokenizer)
+    return model, tokenizer
 
 
 def write_to_folder(file_path, model):

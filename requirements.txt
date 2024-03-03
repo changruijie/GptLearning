@@ -6,3 +6,6 @@ unstructured
 chromadb
 bitsandbytes
 accelerate
+pypdf
+gradio
+rapidocr_onnxruntime
