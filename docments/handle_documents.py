@@ -8,11 +8,18 @@ from rapidocr_onnxruntime import RapidOCR
 def load_file(file_path):
     # 从docs_path路径加载文件（加载所有文件）
     docs = []
-    for doc in os.listdir(file_path):
-        doc_path: str = f'{file_path}/{doc}'
-        split_docs = load_type_file(doc_path)
-        docs.extend(split_docs)
+    if os.path.isfile(file_path):
+        docs = load_type_file(file_path)
+    elif os.path.isdir(file_path):
+        for doc in os.listdir(file_path):
+            doc_path: str = f'{file_path}/{doc}'
+            split_docs = load_type_file(doc_path)
+            docs.extend(split_docs)
+    else:
+        print(f"{file_path} 不是一个有效的文件路径或文件夹路径。")
+
     return docs
+
 
 def load_type_file(doc_path: str):
     if doc_path.endswith('.txt'):

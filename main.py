@@ -8,9 +8,9 @@ from docments.handle_documents import load_file
 from docments.handle_vector import store_chroma, get_vector_store
 
 import torch
-
-nltk.data.path = [os.path.join(os.path.dirname(__file__), "nltk_data")
-                  ] + nltk.data.path
+#
+# nltk.data.path = [os.path.join(os.path.dirname(__file__), "nltk_data")
+#                   ] + nltk.data.path
 
 embedding_model_dict = {
     "gte": "thenlper/gte-large",
@@ -18,15 +18,14 @@ embedding_model_dict = {
 init_llm = "mistralai/Mistral-7B-Instruct-v0.2"
 init_embedding_model = "thenlper/gte-large"
 init_model_type = model_type_dict['mistral']
-llm_model_list = []
+model_type_dict = {
+    "mistral":"mistral",
+    "chatglm":"chatglm"
+}
 llm_model_dict = {
     "chatglm": "THUDM/chatglm3-6b",
     "mistral": "mistralai/Mistral-7B-Instruct-v0.2"
 }
-
-for i in llm_model_dict:
-    for j in llm_model_dict[i]:
-        llm_model_list.append(j)
 
 
 class KnowledgeBasedChatLLM:
@@ -43,9 +42,10 @@ class KnowledgeBasedChatLLM:
     ):
 
         self.embeddings = HuggingFaceEmbeddings(
-            model_name=embedding_model_dict[embedding_model_name], )
+            model_name=embedding_model_name, )
         self.llm = None
         torch.cuda.empty_cache()
+        print(model_name,model_type,embedding_model_name)
         self.prompt, self.llm = load_llm(model_name, model_type)
 
     def init_knowledge_vector_store(self, filepath):
@@ -92,9 +92,10 @@ def clear_session():
     return '', None
 
 
-def reinit_model(history):
+def reinit_model(model_name,model_type,embedding_model_name,history):
     try:
-        knowledge_based_chat_llm.init_model_config()
+        print(model_name,model_type,embedding_model_name)
+        knowledge_based_chat_llm.init_model_config(model_name,model_type,embedding_model_name)
         model_status = """模型已成功重新加载，可以开始对话"""
     except Exception as e:
         model_status = """模型未成功重新加载，请点击重新加载模型"""
@@ -102,6 +103,7 @@ def reinit_model(history):
 
 
 def init_vector_store(file_obj):
+    print(f'file_obj:{file_obj}')
     vector_store = knowledge_based_chat_llm.init_knowledge_vector_store(
         file_obj.name)
     return vector_store
@@ -118,7 +120,11 @@ def predict(input,
         query=input,
         web_content=use_web,
         top_k=top_k)
-    history.append((input, resp['result']))
+    print(f"history: {history}")
+    print(f"input: {input}")
+    print(f"resp: {resp}")
+    history.append((input, resp))
+    # history.append((input, resp['result']))
     return '', history, history
 
 
@@ -137,15 +143,19 @@ if __name__ == "__main__":
             with gr.Column(scale=1):
                 model_choose = gr.Accordion("模型选择")
                 with model_choose:
-                    large_language_model = gr.Dropdown(
-                        llm_model_list,
-                        label="large language model",
-                        value=init_llm)
+                    large_language_model = gr.Dropdown(list(
+                        llm_model_dict.values()),
+                        label="large language model"
+                        )
+
+                    language_model_type = gr.Dropdown(list(
+                        model_type_dict.values()),
+                        label="model type"
+                        )
 
                     embedding_model = gr.Dropdown(list(
-                        embedding_model_dict.keys()),
-                                                  label="Embedding model",
-                                                  value=init_embedding_model)
+                        embedding_model_dict.values()),
+                                                  label="Embedding model")
                     load_model_button = gr.Button("重新加载模型")
                 model_argument = gr.Accordion("模型参数配置")
                 with model_argument:
@@ -188,7 +198,7 @@ if __name__ == "__main__":
 
             with gr.Column(scale=4):
                 chatbot = gr.Chatbot([[None, model_status.value]],
-                                     label='ChatLLM').style(height=750)
+                                     label='ChatLLM')
                 message = gr.Textbox(label='请输入问题')
                 state = gr.State()
 
@@ -199,7 +209,7 @@ if __name__ == "__main__":
             load_model_button.click(
                 reinit_model,
                 show_progress="full",
-                inputs=[large_language_model, embedding_model, chatbot],
+                inputs=[large_language_model,language_model_type, embedding_model, chatbot],
                 outputs=chatbot,
             )
             init_vs.click(
@@ -208,11 +218,9 @@ if __name__ == "__main__":
                 inputs=[file],
                 outputs=[],
             )
-
             send.click(predict,
                        inputs=[
-                           message, use_web, top_k, history_len, temperature,
-                           top_p, state
+                           message, use_web, top_k, state
                        ],
                        outputs=[message, chatbot, state])
             clear_history.click(fn=clear_session,
@@ -222,17 +230,12 @@ if __name__ == "__main__":
 
             message.submit(predict,
                            inputs=[
-                               message, use_web, top_k, history_len,
-                               temperature, top_p, state
+                               message, use_web, top_k, state
                            ],
                            outputs=[message, chatbot, state])
         gr.Markdown("""提醒：<br>
         1. 使用时请先上传自己的知识文件，并且文件中不含某些特殊字符，否则将返回error. <br>
         """)
     # threads to consume the request
-    demo.queue(concurrency_count=3) \
-        .launch(server_name='0.0.0.0', # ip for listening, 0.0.0.0 for every inbound traffic, 127.0.0.1 for local inbound
-                server_port=7860, # the port for listening
-                show_api=False, # if display the api document
-                share=False, # if register a public url
-                inbrowser=False) # if browser would be open automatically
+    demo.queue() \
+        .launch(debug=True)
