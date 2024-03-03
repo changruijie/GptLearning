@@ -1,0 +1,8 @@
+huggingface_hub
+langchain[all]
+python-dotenv
+sentence-transformers
+unstructured
+chromadb
+bitsandbytes
+accelerate
