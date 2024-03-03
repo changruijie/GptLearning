@@ -1,7 +1,6 @@
 import torch
 from transformers import AutoModelForCausalLM, BitsAndBytesConfig
 import os
-from load_model import load_remote_llm
 
 
 # 将LLM保存到本地

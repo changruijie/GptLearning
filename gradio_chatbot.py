@@ -1,25 +1,36 @@
 import gradio as gr
 import os
 import time
-import knowledge_chat
+from predict.question_answer import get_knowledge_based_answer
+from docments.handle_vector import get_vector_store
+from docments.handle_vector import load_embedding_mode
+from docments.handle_vector import store_chroma
+from docments.handle_documents import load_file
 
-# Chatbot demo with multimodal input (text, markdown, LaTeX, code blocks, image, audio, & video). Plus shows support for streaming text.
 
-
+# 输出好恶
 def print_like_dislike(x: gr.LikeData):
     print(x.index, x.value, x.liked)
 
 
+# 上传文档
 def add_text(history, text):
+    directory = os.path.dirname(text.name)
+    documents = load_file("", directory)
+    embeddings = load_embedding_mode('thenlper/gte-large')
+    store_chroma(documents, embeddings)
     history = history + [(text, None)]
     return history, gr.Textbox(value="", interactive=False)
 
 
+# 上传文件
 def add_file(history, file):
     # 拿到上传的文件夹
     directory = os.path.dirname(file.name)
-    documents = knowledge_chat.load_documents(directory)
-    knowledge_chat.store_chroma(documents, knowledge_chat.embedding_model_dict["gte-large"])
+    documents = load_file(directory)
+    # 默认使用阿里达摩院的embedding模型
+    embeddings = load_embedding_mode('thenlper/gte-large')
+    store_chroma(documents, embeddings)
     history = history + [((file.name,), None)]
     return history
 
@@ -29,12 +40,11 @@ def bot(history):
     if isinstance(message, tuple):
         response = "文件上传成功！"
     else:
-        response = knowledge_chat.get_knowledge_based_answer(message,
-                                                             'ChatGLM3-6B',
-                                                             knowledge_chat.get_vector_store("VectorStore",knowledge_chat.embedding_model_dict["gte-large"]),
-                                                             3,
-                                                             '',
-                                                             history)
+        # chatgml3 - chatglm3直接加载本地会报错，后续具体分析怎么做
+        model_path = "THUDM/chatglm3-6b"
+        # model_path = "./model/mistral"
+        vector_store = get_vector_store("VectorStore", load_embedding_mode('thenlper/gte-large'))
+        response = get_knowledge_based_answer(message, model_path, vector_store, 3, '')
 
     # response = "**That's cool!**"
     history[-1][1] = ""
@@ -49,7 +59,7 @@ with gr.Blocks() as demo:
         [],
         elem_id="chatbot",
         bubble_full_width=False,
-        avatar_images=(None, (os.path.join(os.path.dirname(__file__), "avatar.png"))),
+        # avatar_images=(None, (os.path.join(os.path.dirname(__file__), "avatar.png"))),
     )
 
     with gr.Row():
@@ -70,7 +80,6 @@ with gr.Blocks() as demo:
     )
 
     chatbot.like(print_like_dislike, None, None)
-
 
 demo.queue()
 if __name__ == "__main__":

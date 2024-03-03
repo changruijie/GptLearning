@@ -1,5 +1,3 @@
-# 加载大模型
-# langchain使用mistral-7b生成文本案例
 import os.path
 
 from transformers import BitsAndBytesConfig, pipeline
@@ -16,7 +14,7 @@ class MistralService(LLM):
     tokenizer: AutoTokenizer = None
     model: AutoModelForCausalLM = None
 
-    def __int__(self, model_path: str, model_id, bnb_config):
+    def __int__(self, model_path: str, model_id="", bnb_config=""):
         super().__init__()
         # 从本地初始化模型
         if os.path.exists(model_path):
@@ -48,3 +46,23 @@ class MistralService(LLM):
     @property
     def _llm_type(self) -> str:
         return "Mistral-7B"
+
+    def load_llm(self):
+        # 创建一个用于文本生成的pipeline
+        text_generation_pipeline = pipeline(
+            "text-generation",
+            model=self.model,
+            tokenizer=self.tokenizer,
+            use_cache=True,
+            device_map="auto",
+            max_length=3200,
+            do_sample=True,
+            top_k=5,  # top_k 控制了模型生成词汇时考虑的概率最高的 k 个词
+            num_return_sequences=1,
+            eos_token_id=self.tokenizer.eos_token_id,
+            pad_token_id=self.tokenizer.eos_token_id,
+        )
+
+        # 创建HuggingFacePipeline实例，用于后续语言生成
+        llm = HuggingFacePipeline(pipeline=text_generation_pipeline)
+        return llm
