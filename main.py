@@ -1,9 +1,16 @@
+import os
+
 import gradio as gr
+import nltk
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from predict.question_answer import load_llm, model_type_dict,get_knowledge_based_answer,get_general_answer
 from docments.handle_documents import load_file
 from docments.handle_vector import store_chroma, get_vector_store
+
 import torch
+#
+# nltk.data.path = [os.path.join(os.path.dirname(__file__), "nltk_data")
+#                   ] + nltk.data.path
 
 embedding_model_dict = {
     "gte": "thenlper/gte-large",
@@ -74,7 +81,6 @@ def init_model():
         print("开始加载模型配置")
         knowledge_based_chat_llm.init_model_config()
         print("模型配置加载成功")
-        knowledge_based_chat_llm.llm._call("你好")
         return """初始模型已成功加载，可以开始对话"""
     except Exception as e:
         print(f"加载模型出错: {e}")  # 打印详细的异常信息

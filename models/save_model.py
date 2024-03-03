@@ -15,21 +15,24 @@ def save_llm_local(model_id: str, bnb_config, file_path: str):
     else:
         model = AutoModelForCausalLM.from_pretrained(model_id)
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    write_to_folder(file_path, model)
-    write_to_folder(file_path, tokenizer)
+    print(f'file_path:{file_path}')
+    if not os.path.exists(file_path):
+        os.mkdir(file_path)
+    write_to_folder(file_path, model, tokenizer)
     return model, tokenizer
 
 
-def write_to_folder(file_path, model):
-    # 获取文件夹路径
-    folder_path = os.path.dirname(file_path)
+def write_to_folder(file_path, model, tokenizer):
+    # # 获取文件夹路径
+    # folder_path = os.path.dirname(file_path)
 
     # 检查文件夹是否存在，如果不存在则创建
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
+    if not os.path.exists(file_path):
+        os.makedirs(file_path)
 
     # 保存模型
     model.save_pretrained(file_path)
+    tokenizer.save_pretrained(file_path)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from typing import Any, List, Optional
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
-from save_model import save_llm_local
+from models.save_model import save_llm_local
 
 
 class MistralService(LLM):
@@ -15,7 +15,7 @@ class MistralService(LLM):
     tokenizer: AutoTokenizer = None
     model: AutoModelForCausalLM = None
 
-    def __int__(self, model_path: str):
+    def __init__(self, model_path: str):
         super().__init__()
         # 从本地初始化模型
         if os.path.exists(model_path):
